@@ -1,6 +1,5 @@
 //header
 
-
     var svg0 = d3.select('#info-rect-1').append('svg')
         .attr('width', '1400')
         .attr('height', 120);
@@ -13,6 +12,7 @@
         .style('stroke', '#3c97da')
         .style('stroke-width', '2')
         .style('opacity', '0.5');
+
     svg0.append('line')
         .attr('x1', 20)
         .attr('x2', 1380)
@@ -107,7 +107,7 @@ d3.csv( 'file.csv' ).then(function( data ) {
             .style('font', 'bold 11px sans-serif');
 
 //create bars
-    svg.append('g')
+    var bars = svg.append('g')
         .attr('class', 'bars')
         .selectAll( 'rect' )
         .data( data )
@@ -119,13 +119,15 @@ d3.csv( 'file.csv' ).then(function( data ) {
         .attr( 'x', function( d ){
             return x_scale( d.Date ) + padding.left;
         })
-        .attr( 'y', function(d ){
+        .attr('y', chart_height - padding.bottom)
+/*        .attr( 'y', function(d ){
             return y_scale(d.Actual) + padding.top;
-        })
+        })*/
         .attr( 'width', x_scale.bandwidth() )
-        .attr( 'height', function( d ){
+        .attr('height', 0)
+/*        .attr( 'height', function( d ){
         return chart_height - y_scale(d.Actual) - padding.bottom - padding.top;
-        })
+        })*/
         .attr( 'fill', '#3c97da')
         .attr('stroke', '#226789')
         .on('mouseover', function(d){
@@ -188,8 +190,19 @@ d3.csv( 'file.csv' ).then(function( data ) {
                 .style('opacity', '0.6')
                 .text('');
         })
-    ;;;
-
+    ;
+        bars.transition()
+            .attr( 'height', function( d ){
+                return chart_height - y_scale(d.Actual) - padding.bottom - padding.top;
+            })
+            .attr( 'y', function(d ){
+                return y_scale(d.Actual) + padding.top;
+            })
+            .delay(function(d, i) {
+                return i * 20;
+            })
+            .duration(1000)
+            .ease(d3.easeSinInOut);
 //create line
 
     svg.append('g').attr('class', 'line')
@@ -199,7 +212,11 @@ d3.csv( 'file.csv' ).then(function( data ) {
         .attr( 'stroke', '#d95f02' )
         .attr( 'stroke-width', 2 )
         .attr('stroke-dasharray', 5)
-        .attr( 'd', line );
+        .attr( 'd', line )
+        .style('opacity', 0)
+        .transition()
+        .duration(1000)
+        .style('opacity', 1);
 
 
 // Create Title
@@ -278,7 +295,7 @@ d3.csv( 'file2.csv' ).then(function( data ) {
         .attr('class', 'arc')
         .attr('transform', 'translate(' + pie_width/ 2 + ', ' + pie_height / 2 + ')');
 
-    arcs.append('path')
+    var properPie = arcs.append('path')
         .attr('id', function(d){
             return d.data.Sum;
         })
@@ -290,6 +307,7 @@ d3.csv( 'file2.csv' ).then(function( data ) {
         })
         .style('stroke', '#0a2234')
         .style('stroke-width', '5')
+        .style('opacity', 0)
         .attr('d', arc)
         .on('mouseover', function(d){
 
@@ -364,8 +382,10 @@ d3.csv( 'file2.csv' ).then(function( data ) {
                 .transition()
                 .duration(400)
                 .style('opacity', 1);
-        })
-    ;
+        });
+    properPie.transition()
+        .duration(1000)
+        .style('opacity', 1);
 
     //piechart title
 
@@ -428,12 +448,13 @@ d3.csv( 'file2.csv' ).then(function( data ) {
         .attr('class', 'arc')
         .attr('transform', 'translate(' + pie_width/ 2 + ', ' + pie_height / 2 + ')');
 
-    arcs.append('path')
+    var properPie = arcs.append('path')
         .attr('fill', function (d) {
             return colors(d.data.Type);
         })
         .style('stroke', '#0a2234')
         .style('stroke-width', '5')
+        .style('opacity', 0)
         .attr('d', arc)
         .on('mouseover', function(d){
 
@@ -453,6 +474,11 @@ d3.csv( 'file2.csv' ).then(function( data ) {
                 .style('fill-opacity', '1');
         })
     ;
+
+    properPie.transition()
+        .duration(1000)
+        .style('opacity', 1);
+
 
     //piechart title
 
@@ -512,14 +538,15 @@ d3.csv( 'file.csv' ).then(function( data ) {
 
 
     //draw lines
-    svg3.append('g')
+    var properLine = svg3.append('g')
         .attr('class', 'line')
         .append( 'path' )
         .datum(data)
         .attr( 'stroke', '#3c97da' )
         .attr( 'stroke-width', 3 )
         .attr( 'd', line )
-        .attr('fill', 'transparent');
+        .attr('fill', 'transparent')
+        .style('opacity', 0);
 
     //label
     svg3.append('text')
@@ -556,7 +583,7 @@ d3.csv( 'file.csv' ).then(function( data ) {
 
     //draw circles
 
-    svg3.append('g')
+    var properCirc = svg3.append('g')
         .attr('id', 'outer-circ')
         .selectAll('circle')
         .data(data)
@@ -572,7 +599,7 @@ d3.csv( 'file.csv' ).then(function( data ) {
             .attr('cy', function(d){
                 return y_scale(d.savings) + padding.top;
             })
-            .attr('r', '5')
+            .attr('r', '0')
             .style('stroke', '#3c97da')
             .style('stroke-width', '2')
             .style('fill', '#0a2234')
@@ -662,8 +689,16 @@ d3.csv( 'file.csv' ).then(function( data ) {
                     .text('');
 
             }
-        })
-;
+        });
+
+
+    properLine.transition()
+        .duration(1000)
+        .style('opacity', 1);
+    properCirc.transition()
+        .duration(1000)
+        .attr('r', 5);
+
 
 
     svg3.append('text')
@@ -722,14 +757,15 @@ d3.csv( 'file3.csv' ).then(function( data ) {
         .style('font', 'bold 15px sans-serif')
         .attr('dy', '3%');
 
-    svg4.append('g').attr('class', 'heatboxes')
+   var properBoxes = svg4.append('g').attr('class', 'heatboxes')
         .selectAll('rect')
         .data(data)
         .enter()
         .append('rect')
-        .attr( 'x', function( d ){
+        .attr('x', padding.left)
+/*        .attr( 'x', function( d ){
             return x_scale( d.Weekday ) + padding.left;
-        })
+        })*/
         .attr( 'y', padding.top)
         .attr('height', chart_height - padding.bottom - padding.top)
         .attr('width', x_scale.bandwidth())
@@ -754,16 +790,21 @@ d3.csv( 'file3.csv' ).then(function( data ) {
                 .duration(450)
                 .style('opacity', '1');
         });
+        properBoxes.transition()
+            .duration(1000)
+            .attr( 'x', function( d ){
+                return x_scale( d.Weekday ) + padding.left;
+            });
 
     //labels
-    svg4.append('g').attr('id', 'heatlabels')
+    var properLables = svg4.append('g').attr('id', 'heatlabels')
         .selectAll('text')
         .data(data)
         .enter()
         .append('text')
-        .attr('dx', function(d){
+/*        .attr('dx', function(d){
             return x_scale(d.Weekday) + padding.left + (x_scale.bandwidth() / 2);
-        })
+        })*/
         .attr('dy', chart_height / 2)
         .attr('text-anchor', 'middle')
         .attr('fill', '#0a2234')
@@ -772,7 +813,11 @@ d3.csv( 'file3.csv' ).then(function( data ) {
         .text(function(d){
             return d.Sum +' PLN';
         });
-
+    properLables.transition()
+        .duration(1000)
+        .attr('dx', function(d){
+            return x_scale(d.Weekday) + padding.left + (x_scale.bandwidth() / 2);
+        });
     //titles
     svg4.append('text')
         .attr('dx', chart_width / 2)
@@ -786,6 +831,7 @@ d3.csv( 'file3.csv' ).then(function( data ) {
 
 });
 
+/*
 d3.csv('file4.csv').then(function(data){
 
 
@@ -894,8 +940,9 @@ d3.csv('file4.csv').then(function(data){
         .attr( 'height', function( d ){
             return chart_height - y_scale(d.Actual) - padding.bottom - padding.top;
         })
-        .attr( 'fill', '#0e70b7')
-        .attr('stroke', '#226789')
+        .attr( 'fill', '#cfda3c')
+        .attr('stroke', '#226789');
+
 
 
     //create line
@@ -920,4 +967,4 @@ d3.csv('file4.csv').then(function(data){
         .text('Monthly Spending and Accumulated Savings');
 
 
-});
+});*/
