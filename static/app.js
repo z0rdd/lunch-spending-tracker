@@ -798,7 +798,7 @@ $('#piechart1-title').on('click', function(){
     
     
     
-    //draw the pie
+    // draw the pie
     settings.piechart.p1.properPie = settings.piechart.p1.arcs
         .append('path')
 
