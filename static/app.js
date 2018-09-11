@@ -152,7 +152,7 @@ createChartTitle(settings.line, settings.line.chart_width, settings.line.padding
 function documentReady(){
     $.ajax({
         type: 'GET',
-        url: '/test',
+        url: '/initialdload',
         dataType: 'json'
     })
     .done(function(data){
@@ -765,25 +765,27 @@ function documentReady(){
 }
 
 
-$(document).ready(documentReady);
+function updatePie(api_url, unit){
 
 
-
-//data load selectors/
-$('#piechart1-title').on('click', function(){
     $.ajax({
         type: 'GET',
-        url: '/piechangefreq',
+        url: api_url,
         dataType: 'json'
     })
     .done(function(data){
         console.log(data);
+        if (api_url == '/piechangefreq'){
+        //settings.piechart.p1.pie = d3.pie().value(function(d){ return d.freq; });
+            settings.piechart.p1.pie = d3.pie().value(function(d){ return d.freq; });
+        }else{
+            settings.piechart.p1.pie = d3.pie().value(function(d){ return d.vsum; }); 
+        }
 
-        settings.piechart.p1.pie = d3.pie().value(function(d){ return d.freq; });
+        // settings.piechart.p1.properPie.transition()
+        // .duration(400)
+        // .style('opacity', 0);
 
-        settings.piechart.p1.properPie.transition()
-        .duration(1000)
-        .style('opacity', 0);
 
         d3.selectAll('.arc').remove()
 
@@ -795,18 +797,9 @@ $('#piechart1-title').on('click', function(){
             .attr('class', 'arc')
             .attr('transform', 'translate(' + settings.piechart.p1.pie_width/ 2 + ', ' + settings.piechart.p1.pie_height / 2 + ')');
     
-    
-    
-    
     // draw the pie
     settings.piechart.p1.properPie = settings.piechart.p1.arcs
         .append('path')
-
-        .attr('id', function(d){
-
-            return d.data.freq;
-            
-        })
         .attr('class', function(d){
             return d.data.food_type;
         })
@@ -818,16 +811,138 @@ $('#piechart1-title').on('click', function(){
         .style('stroke-width', '5')
         .style('opacity', 0)
         .attr('d', settings.piechart.p1.arc)
+        .on('mouseover', function(d){
+
+            var currentElement = d3.select(this);
+            console.log(currentElement.attr('id'));
+            console.log(this);
+            currentElement.transition()
+                .duration(400)
+                .style('fill-opacity', '0.5')
+                .style('stroke-width', 0);
+            var label1 = d3.select('.pielabel_2');
+                label1
+                .transition()
+                .duration(200)
+                .style('opacity', '0')
+                .transition()
+                .duration(200)
+                .style('opacity', '0.6')
+                .text(currentElement.attr('class'));
+            var label2 = d3.select('.pielabel_1');
+            label2
+                .transition()
+                .duration(200)
+                .style('opacity', '0')
+                .transition()
+                .duration(200)
+                .style('opacity', '0.6')
+                .text(currentElement.attr('id')+unit);
+
+            // barchart interaction
+
+            var bars = d3.selectAll('rect.'+currentElement.attr('class'));
+            bars
+                .transition()
+                .duration(1000)
+                .style('opacity', 0.6);
+        })
+        .on('mouseout', function(d){
+
+            var currentElement = d3.select(this);
+
+            currentElement.transition()
+                .duration(450)
+                .style('fill-opacity', '1')
+                .style('stroke-width', 5);
+            var label1 = d3.select('.pielabel_2');
+            label1
+                .transition()
+                .duration(200)
+                .style('opacity', '0.6')
+                .transition()
+                .duration(200)
+                .style('opacity', '0')
+                .text('');
+            var label2 = d3.select('.pielabel_1');
+            label2
+                .transition()
+                .duration(200)
+                .style('opacity', '0.6')
+                .transition()
+                .duration(200)
+                .style('opacity', '0')
+                .text('');
+
+            // barchart interaction
+
+            var bars = d3.selectAll('rect.'+currentElement.attr('class'));
+            bars
+                .transition()
+                .duration(500)
+                .style('opacity', 1);
+        });
 
         settings.piechart.p1.properPie.transition()
         .duration(1000)
         .style('opacity', 1);
+
+
+        
+    });
+        if (api_url == '/piechangefreq'){
+
+            settings.piechart.p1.arcs
+            .attr('id', function(d){
+
+                return d.data.freq;
+
+            });
+
+            d3.select('#piechart1-title')
+            .text('Food Type by: Frequency')
+            .transition()
+            .duration(500)
+            .style('opacity', 1);
+
+
+        }else{
+            
+            settings.piechart.p1.arcs
+            .attr('id', function(d){
+
+                return d.data.vsum;
+
+            });
+
+            d3.select('#piechart1-title')
+            .text('Food Type by: Value')
+            .transition()
+            .duration(500)
+            .style('opacity', 1);
             
 
 
+        }
+    }   
 
-    
-    });
+
+$(document).ready(documentReady);
+
+
+
+//data load selectors/
+$('#piechart1-title').on('click', function(){
+    var title = d3.select('#piechart1-title').text();
+    console.log(title, typeof(title));
+    if (title == 'Food Type by: Value'){
+
+        updatePie('/piechangefreq', ' x');
+
+    }else{
+        updatePie('/piechangeval', ' PLN');
+        
+    }
 });
 
 
