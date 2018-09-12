@@ -71,7 +71,7 @@ piechart: {
         x_scale: d3.scaleBand(),    
         colors: d3.scaleQuantize().range(d3.schemeBlues[5]),    
         xAxis: d3.axisBottom(),
-        title: 'Spending Distribution: Weekdays',
+        title: 'Total Spending Distribution: Weekdays',
         properBoxes: null,
         properLabeles: null
 
@@ -91,12 +91,9 @@ piechart: {
         properCirc: null
 
 
-
-
     }
 
 }
-
 
 //create chart areas
 
@@ -146,177 +143,181 @@ var svg5 = d3.select('#'+settings.line.id)
     // Create Title
 createChartTitle(settings.line, settings.line.chart_width, settings.line.padding.top, svg5);
 
+var parseDate = d3.timeParse('%Y-%d-%m');
 
 
-//first data load function
-function documentReady(){
-    $.ajax({
-        type: 'GET',
-        url: '/initialdload',
-        dataType: 'json'
-    })
-    .done(function(data){
 
 
-        //*************************barchart*********************************
-        var parseDate = d3.timeParse('%Y-%d-%m');
+
+
+
+
+//functions creating vizualizations
+
+function createBarchart(data, isLine){
 
     
-        //create svg
-        data[0].forEach(function(d){
-            
-            d.lunch_date = parseDate(d.lunch_date);
-          });
-        console.log(data[3]);
-        //scales
-        settings.barchart.x_scale
-            .domain( data[0].map(function(d){ return d.lunch_date; }) )
-            .rangeRound([ 0, settings.barchart.chart_width - settings.barchart.padding.left ])
-            .paddingInner( 0.05 );
 
-        settings.barchart.y_scale.domain([0, d3.max(data[0], function( d ){
+    data.forEach(function(d){
+        
+        d.lunch_date = parseDate(d.lunch_date);
+      });
+
+    //scales
+    settings.barchart.x_scale
+        .domain( data.map(function(d){ return d.lunch_date; }) )
+        .rangeRound([ 0, settings.barchart.chart_width - settings.barchart.padding.left ])
+        .paddingInner( 0.05 );
+
+    settings.barchart.y_scale.domain([0, d3.max(data, function( d ){
+        if (d.actual > d.baseline){
             return d.actual;
-        })])
-        .range([settings.barchart.chart_height - settings.barchart.padding.top - settings.barchart.padding.bottom, 0]);
-        
-        //define axes
-        settings.barchart.xAxis
-            .scale(settings.barchart.x_scale)
-            .tickFormat(d3.timeFormat("%b-%d"));
+        }else{
+            return d.baseline;
+        }
+    })])
+    .range([settings.barchart.chart_height - settings.barchart.padding.top - settings.barchart.padding.bottom, 0]);
+    
+    //define axes
+    settings.barchart.xAxis
+        .scale(settings.barchart.x_scale)
+        .tickFormat(d3.timeFormat("%b-%d"));
 
-        settings.barchart.yAxis
-            .scale(settings.barchart.y_scale);
-        
-        //define line
-        settings.barchart.line
-            .x(function( d ){
+    settings.barchart.yAxis
+        .scale(settings.barchart.y_scale);
+    
+   
 
-                return settings.barchart.x_scale( d.lunch_date ) + (settings.barchart.padding.left + (settings.barchart.x_scale.bandwidth() / 2));
-            })
-            .y(function( d ){
+    //create axes
+    svg.append('g')
+    .attr('class', 'xaxis')
+    .attr('transform', 'translate('+settings.barchart.padding.left+', ' + (settings.barchart.chart_height - settings.barchart.padding.bottom)+')')
+    .call(settings.barchart.xAxis)
+    .selectAll('text')
+        .attr("transform", "rotate(-90)" )
+        .style("text-anchor", "end")
+        .attr('fill', '#6b8193')
+        .style('font', 'bold 11px sans-serif')
+        .attr("dx", "-1%")
+        .attr('dy', '-1%');
 
-                return settings.barchart.y_scale( d.baseline ) + settings.barchart.padding.top;
-            });
-        
-
-        //create axes
-        svg.append('g')
-        .attr('class', 'xaxis')
-        .attr('transform', 'translate('+settings.barchart.padding.left+', ' + (settings.barchart.chart_height - settings.barchart.padding.bottom)+')')
-        .call(settings.barchart.xAxis)
+    svg.append('g')
+        .attr('class', 'yaxis')
+        .attr('transform', 'translate('+settings.barchart.padding.left+', ' +settings.barchart.padding.top+')')
+        .call(settings.barchart.yAxis)
         .selectAll('text')
-            .attr("transform", "rotate(-90)" )
-            .style("text-anchor", "end")
             .attr('fill', '#6b8193')
-            .style('font', 'bold 11px sans-serif')
-            .attr("dx", "-1%")
-            .attr('dy', '-1%');
+            .style('font', 'bold 11px sans-serif');
 
-        svg.append('g')
-            .attr('class', 'yaxis')
-            .attr('transform', 'translate('+settings.barchart.padding.left+', ' +settings.barchart.padding.top+')')
-            .call(settings.barchart.yAxis)
-            .selectAll('text')
-                .attr('fill', '#6b8193')
-                .style('font', 'bold 11px sans-serif');
+            //create bars
+    settings.barchart.bars = svg.append('g')
+    .attr('class', 'bars')
+    .selectAll( 'rect' )
+    .data( data )
+    .enter()
+    .append( 'rect' )
+    .attr('class', function(d){
+        return d.food_type;
+    })
+    .attr( 'x', function( d ){
+        return settings.barchart.x_scale( d.lunch_date ) + settings.barchart.padding.left;
+    })
+    .attr('y', settings.barchart.chart_height - settings.barchart.padding.bottom)
 
-                //create bars
-        settings.barchart.bars = svg.append('g')
-        .attr('class', 'bars')
-        .selectAll( 'rect' )
-        .data( data[0] )
-        .enter()
-        .append( 'rect' )
-        .attr('class', function(d){
-            return d.food_type;
+    .attr( 'width', settings.barchart.x_scale.bandwidth() )
+    .attr('height', 0)
+
+    .attr( 'fill', '#3c97da')
+    .attr('stroke', '#226789')
+    .on('mouseover', function(d){
+
+        var currentElement = d3.select(this)
+
+        currentElement.transition()
+            .duration(400)
+            .style('fill-opacity', '0.5')
+
+        //interaction with pie1
+        var arc = d3.select('path.'+currentElement.attr('class'));
+
+        arc
+            .transition()
+            .duration(400)
+            .style('opacity', '0.5')
+            .style('stroke-width', 0);
+
+
+
+        var label1 = d3.select('.pielabel_2');
+        label1
+            .transition()
+            .duration(200)
+            .style('opacity', '0')
+            .transition()
+            .duration(200)
+            .style('opacity', '0.6')
+            .text(currentElement.attr('class'));
+
+
+    })
+    .on('mouseout', function(d){
+
+        var currentElement = d3.select(this);
+
+        currentElement.transition()
+            .duration(400)
+            .style('fill-opacity', '1');
+
+        //interaction with pie1
+        var arc = d3.select('path.'+currentElement.attr('class'));
+
+        arc
+            .transition()
+            .duration(400)
+            .style('opacity', '1')
+            .style('stroke-width', 5);
+
+
+
+        var label1 = d3.select('.pielabel_2');
+        label1
+            .transition()
+            .duration(200)
+            .style('opacity', '0')
+            .transition()
+            .duration(200)
+            .style('opacity', '0.6')
+            .text('');
+    });
+    settings.barchart.bars.transition('barchart-loads')
+        .attr( 'height', function( d ){
+            return settings.barchart.chart_height - settings.barchart.y_scale(d.actual) - settings.barchart.padding.bottom - settings.barchart.padding.top;
         })
-        .attr( 'x', function( d ){
-            return settings.barchart.x_scale( d.lunch_date ) + settings.barchart.padding.left;
+        .attr( 'y', function(d ){
+            return settings.barchart.y_scale(d.actual) + settings.barchart.padding.top;
         })
-        .attr('y', settings.barchart.chart_height - settings.barchart.padding.bottom)
-
-        .attr( 'width', settings.barchart.x_scale.bandwidth() )
-        .attr('height', 0)
-
-        .attr( 'fill', '#3c97da')
-        .attr('stroke', '#226789')
-        .on('mouseover', function(d){
-
-            var currentElement = d3.select(this)
-
-            currentElement.transition()
-                .duration(400)
-                .style('fill-opacity', '0.5')
-
-            //interaction with pie1
-            var arc = d3.select('path.'+currentElement.attr('class'));
-
-            arc
-                .transition()
-                .duration(400)
-                .style('opacity', '0.5')
-                .style('stroke-width', 0);
-
-
-
-            var label1 = d3.select('.pielabel_2');
-            label1
-                .transition()
-                .duration(200)
-                .style('opacity', '0')
-                .transition()
-                .duration(200)
-                .style('opacity', '0.6')
-                .text(currentElement.attr('class'));
-
-
+        .delay(function(d, i) {
+            return i * 20;
         })
-        .on('mouseout', function(d){
-
-            var currentElement = d3.select(this);
-
-            currentElement.transition()
-                .duration(400)
-                .style('fill-opacity', '1');
-
-            //interaction with pie1
-            var arc = d3.select('path.'+currentElement.attr('class'));
-
-            arc
-                .transition()
-                .duration(400)
-                .style('opacity', '1')
-                .style('stroke-width', 5);
+        .duration(1000)
+        .ease(d3.easeSinInOut);
 
 
+    //define line
+    settings.barchart.line
+        .x(function( d ){
 
-            var label1 = d3.select('.pielabel_2');
-            label1
-                .transition()
-                .duration(200)
-                .style('opacity', '0')
-                .transition()
-                .duration(200)
-                .style('opacity', '0.6')
-                .text('');
+            return settings.barchart.x_scale( d.lunch_date ) + (settings.barchart.padding.left + (settings.barchart.x_scale.bandwidth() / 2));
+        })
+        .y(function( d ){
+
+            return settings.barchart.y_scale( d.baseline ) + settings.barchart.padding.top;
         });
-        settings.barchart.bars.transition()
-            .attr( 'height', function( d ){
-                return settings.barchart.chart_height - settings.barchart.y_scale(d.actual) - settings.barchart.padding.bottom - settings.barchart.padding.top;
-            })
-            .attr( 'y', function(d ){
-                return settings.barchart.y_scale(d.actual) + settings.barchart.padding.top;
-            })
-            .delay(function(d, i) {
-                return i * 20;
-            })
-            .duration(1000)
-            .ease(d3.easeSinInOut);
     //create line
 
     svg.append('g').attr('class', 'line')
         .append( 'path' )
-        .datum(data[0])
+        .datum(data)
         //.attr( 'fill', '#73FF36' )
         .attr( 'stroke', '#d95f02' )
         .attr( 'stroke-width', 2 )
@@ -327,13 +328,11 @@ function documentReady(){
         .duration(1000)
         .style('opacity', 1);
 
-    //*******************************piechart****************************************
 
+}
 
-    settings.piechart.p1.colors.domain(data[1], function (d){ return d.food_type; });
-    console.log();
-
-
+function createPieChart(data, unit){
+    settings.piechart.p1.colors.domain(data, function (d){ return d.food_type; });
     settings.piechart.p1.pie = d3.pie().value(function(d){ return d.vsum; });
     settings.piechart.p1.arc = d3.arc().innerRadius(settings.piechart.p1.inner_radius).outerRadius(settings.piechart.p1.outer_radius);
    
@@ -357,11 +356,9 @@ function documentReady(){
     .attr('fill', '#3c97da')
     .text('');
 
-    
-   
    //define arcs         
     settings.piechart.p1.arcs = svg2.selectAll('g.arc')
-        .data(settings.piechart.p1.pie(data[1]))
+        .data(settings.piechart.p1.pie(data))
         .enter()
         .append('g')
         .attr('class', 'arc')
@@ -414,7 +411,7 @@ function documentReady(){
                 .transition()
                 .duration(200)
                 .style('opacity', '0.6')
-                .text(currentElement.attr('id')+' PLN');
+                .text(currentElement.attr('id')+unit);
 
             // barchart interaction
 
@@ -462,15 +459,15 @@ function documentReady(){
                 .duration(400)
                 .style('opacity', 1);
         });
-        settings.piechart.p1.properPie.transition()
+        settings.piechart.p1.properPie.transition('piechart-loads')
         .duration(1000)
         .style('opacity', 1);
 
+}
 
-    //**************************************piechart#2 placeholder************************
+function createHeatMap(data){
 
-    //**********************************************heatmap************************
-    data[3].forEach(function(d){
+    data.forEach(function(d){
         var wd = {
             'Monday': 1, 
             'Tuesday': 2,
@@ -480,16 +477,16 @@ function documentReady(){
         };
         d.wnum = wd[d.weekday];
     });
-    data[3].sort(function(a, b){
+    data.sort(function(a, b){
         return a.wnum - b.wnum;
     });
-    console.log(data[3]);
+
     settings.heatmap.x_scale
-        .domain( data[3].map(function(d){ return d.weekday; }) )
+        .domain( data.map(function(d){ return d.weekday; }) )
         .rangeRound([ 0, settings.heatmap.chart_width - settings.heatmap.padding.left - settings.heatmap.padding.right ]);
 
     settings.heatmap.colors        
-        .domain([d3.min(data[3], function(d){ return d.vsum; }), d3.max(data[3], function(d){ return d.vsum; }) ])
+        .domain([d3.min(data, function(d){ return d.vsum; }), d3.max(data, function(d){ return d.vsum; }) ])
         .range(d3.schemeBlues[5]);
 
     settings.heatmap.xAxis.scale(settings.heatmap.x_scale);
@@ -505,7 +502,7 @@ function documentReady(){
 
     settings.heatmap.properBoxes = svg4.append('g').attr('class', 'heatboxes')
     .selectAll('rect')
-    .data(data[3])
+    .data(data)
     .enter()
     .append('rect')
     .attr('x', settings.heatmap.padding.left)
@@ -533,7 +530,7 @@ function documentReady(){
             .duration(450)
             .style('opacity', '1');
     });
-    settings.heatmap.properBoxes.transition()
+    settings.heatmap.properBoxes.transition('heatmap-loads')
         .duration(1000)
         .attr( 'x', function( d ){
             return settings.heatmap.x_scale( d.weekday ) + settings.heatmap.padding.left;
@@ -543,7 +540,7 @@ function documentReady(){
     //labels
     settings.heatmap.properLables = svg4.append('g').attr('id', 'heatlabels')
     .selectAll('text')
-    .data(data[3])
+    .data(data)
     .enter()
     .append('text')
     .attr('dy', settings.heatmap.chart_height / 2)
@@ -553,35 +550,37 @@ function documentReady(){
     .style('font', 'bold 17px sans-serif')
     .text(function(d){
 
-        return d.vsum +' PLN';
+        return Math.floor(d.vsum) +' PLN';
     });
-    settings.heatmap.properLables.transition()
+    settings.heatmap.properLables.transition('heatlables-loads')
         .duration(1000)
         .attr('dx', function(d){
             return settings.heatmap.x_scale(d.weekday) + settings.heatmap.padding.left + (settings.heatmap.x_scale.bandwidth() / 2);
         });
 //titles
-    svg4.append('text')
-        .attr('dx', settings.heatmap.chart_width / 2)
-        .attr('dy', settings.heatmap.padding.top/ 2)
-        .attr('fill', '#6b8193')
-        .attr('text-anchor', 'middle')
-        .style('fill-opacity', '1')
-        .style('font', 'bold 17px sans-serif')
-        .text('Spending Distribution: Weekdays');
+    // svg4.append('text')
+    //     .attr('dx', settings.heatmap.chart_width / 2)
+    //     .attr('dy', settings.heatmap.padding.top/ 2)
+    //     .attr('fill', '#6b8193')
+    //     .attr('text-anchor', 'middle')
+    //     .style('fill-opacity', '1')
+    //     .style('font', 'bold 17px sans-serif')
+    //     .text('Spending Distribution: Weekdays');
 
-    // **************************************************line chart************************************
-    data[2].forEach(function(d){
+}
+
+function createLineChart(data){
+    data.forEach(function(d){
             
         d.lunch_date = parseDate(d.lunch_date);
       });
     console.log(data);
     settings.line.x_scale
-    .domain( data[2].map(function(d){ return d.lunch_date; }) )
+    .domain( data.map(function(d){ return d.lunch_date; }) )
     .rangeRound([ 0, settings.line.chart_width - settings.line.padding.left - settings.line.padding.right ]);
 
     settings.line.y_scale
-    .domain([0, d3.max(data[2], function(d){
+    .domain([0, d3.max(data, function(d){
         return d.inc_savings;
     })])
     .range([settings.line.chart_height - settings.line.padding.top - settings.line.padding.bottom, 0])
@@ -601,7 +600,7 @@ function documentReady(){
     settings.line.properLine = svg5.append('g')
         .attr('class', 'line')
         .append( 'path' )
-        .datum(data[2])
+        .datum(data)
         .attr( 'stroke', '#3c97da' )
         .attr( 'stroke-width', 3 )
         .attr( 'd', settings.line.line )
@@ -647,7 +646,7 @@ function documentReady(){
     settings.line.properCirc = svg5.append('g')
         .attr('id', 'outer-circ')
         .selectAll('circle')
-        .data(data[2])
+        .data(data)
         .enter()
         .append('circle')
             .attr('class', 'unclicked-circle')
@@ -753,20 +752,70 @@ function documentReady(){
         });
 
 
-    settings.line.properLine.transition()
+    settings.line.properLine.transition('line-loads')
         .duration(1000)
         .style('opacity', 1);
-    settings.line.properCirc.transition()
+    settings.line.properCirc.transition('line-circle-loads')
         .duration(1000)
         .attr('r', 5);
-
-    });
-
 }
 
 
-function updatePie(api_url, unit){
+//first data load function
+function documentReady(){
+    $.ajax({
+        type: 'GET',
+        url: '/initialdload',
+        dataType: 'json'
+    })
+    .done(function(data){
 
+        d3.select('body').style('pointer-events', 'none');
+        createBarchart(data[0], true);
+        createPieChart(data[1], ' x');
+        createHeatMap(data[3]);
+        createLineChart(data[2]);
+        d3.select('body').style('pointer-events', 'auto');
+
+    });
+}
+
+
+function updatePie(api_url, unit, title){
+    $.ajax({
+        type: 'GET',
+        url: api_url,
+        dataType: 'json'
+    })
+    .done(function(data){
+        console.log(data);
+
+        d3.select('#piechart').style('pointer-events', 'none');
+        //unload piechart
+        settings.piechart.p1.properPie
+        .transition('pie-unloads')
+        .duration(400)
+        .style('opacity', 0);
+
+        setTimeout(function(){
+            //unload axis and base line and bars
+            d3.selectAll('.arc').remove()
+            
+            createPieChart(data, unit);
+            d3.select('#piechart1-title').text('Food Type by: '+title);
+
+            d3.select('#piechart').style('pointer-events', 'auto');
+
+
+
+        }, 400);
+
+        
+    });
+        
+}
+
+function updateBar(api_url, title=''){
 
     $.ajax({
         type: 'GET',
@@ -775,156 +824,72 @@ function updatePie(api_url, unit){
     })
     .done(function(data){
         console.log(data);
-        if (api_url == '/piechangefreq'){
-        //settings.piechart.p1.pie = d3.pie().value(function(d){ return d.freq; });
-            settings.piechart.p1.pie = d3.pie().value(function(d){ return d.freq; });
-        }else{
-            settings.piechart.p1.pie = d3.pie().value(function(d){ return d.vsum; }); 
-        }
 
-        // settings.piechart.p1.properPie.transition()
-        // .duration(400)
-        // .style('opacity', 0);
+        //unload barchart animation
+        settings.barchart.bars.transition('barchart-unloads')
+            .attr('y', settings.barchart.chart_height - settings.barchart.padding.bottom)
+            .attr('height', 0)
+            .delay(function(d, i) {
+                return i * 20;
+            })
+            .duration(1000)
+            .ease(d3.easeSinInOut); 
+            
+            setTimeout(function(){
+                //unload axis and base line and bars
+                d3.select('#barchart svg .xaxis').remove()
+                d3.select('#barchart svg .yaxis').remove()
+                d3.select('#barchart svg .line').remove()
+                d3.selectAll('.bars rect').remove();
+
+                //create new barchart
+                createBarchart(data, false);
+
+                d3.select('#barchart-title').text(title);
 
 
-        d3.selectAll('.arc').remove()
-
-        //define arcs         
-        settings.piechart.p1.arcs = svg2.selectAll('g.arc')
-            .data(settings.piechart.p1.pie(data))
-            .enter()
-            .append('g')
-            .attr('class', 'arc')
-            .attr('transform', 'translate(' + settings.piechart.p1.pie_width/ 2 + ', ' + settings.piechart.p1.pie_height / 2 + ')');
+            }, 1000); 
     
-    // draw the pie
-    settings.piechart.p1.properPie = settings.piechart.p1.arcs
-        .append('path')
-        .attr('class', function(d){
-            return d.data.food_type;
-        })
-        .attr('fill', function (d) {
-
-            return settings.piechart.p1.colors(d.data.food_type);
-        })
-        .style('stroke', '#0a2234')
-        .style('stroke-width', '5')
-        .style('opacity', 0)
-        .attr('d', settings.piechart.p1.arc)
-        .on('mouseover', function(d){
-
-            var currentElement = d3.select(this);
-            console.log(currentElement.attr('id'));
-            console.log(this);
-            currentElement.transition()
-                .duration(400)
-                .style('fill-opacity', '0.5')
-                .style('stroke-width', 0);
-            var label1 = d3.select('.pielabel_2');
-                label1
-                .transition()
-                .duration(200)
-                .style('opacity', '0')
-                .transition()
-                .duration(200)
-                .style('opacity', '0.6')
-                .text(currentElement.attr('class'));
-            var label2 = d3.select('.pielabel_1');
-            label2
-                .transition()
-                .duration(200)
-                .style('opacity', '0')
-                .transition()
-                .duration(200)
-                .style('opacity', '0.6')
-                .text(currentElement.attr('id')+unit);
-
-            // barchart interaction
-
-            var bars = d3.selectAll('rect.'+currentElement.attr('class'));
-            bars
-                .transition()
-                .duration(1000)
-                .style('opacity', 0.6);
-        })
-        .on('mouseout', function(d){
-
-            var currentElement = d3.select(this);
-
-            currentElement.transition()
-                .duration(450)
-                .style('fill-opacity', '1')
-                .style('stroke-width', 5);
-            var label1 = d3.select('.pielabel_2');
-            label1
-                .transition()
-                .duration(200)
-                .style('opacity', '0.6')
-                .transition()
-                .duration(200)
-                .style('opacity', '0')
-                .text('');
-            var label2 = d3.select('.pielabel_1');
-            label2
-                .transition()
-                .duration(200)
-                .style('opacity', '0.6')
-                .transition()
-                .duration(200)
-                .style('opacity', '0')
-                .text('');
-
-            // barchart interaction
-
-            var bars = d3.selectAll('rect.'+currentElement.attr('class'));
-            bars
-                .transition()
-                .duration(500)
-                .style('opacity', 1);
-        });
-
-        settings.piechart.p1.properPie.transition()
-        .duration(1000)
-        .style('opacity', 1);
-
-
-        
     });
-        if (api_url == '/piechangefreq'){
+}
 
-            settings.piechart.p1.arcs
-            .attr('id', function(d){
+function updateHeatMap(api_url, title){
 
-                return d.data.freq;
+    $.ajax({
+        type: 'GET',
+        url: api_url,
+        dataType: 'json'
+    })
+    .done(function(data){
+        console.log(data);
+        //unload heatmap animation
+        settings.heatmap.properBoxes.transition('heatmap-loads')
+        .duration(1000)
+        .attr( 'x', 0)
+        .attr('width', 0);
 
-            });
+        settings.heatmap.properLables.transition('heatlables-loads')
+        .duration(1000)
+        .attr('dx', 0);
 
-            d3.select('#piechart1-title')
-            .text('Food Type by: Frequency')
-            .transition()
-            .duration(500)
-            .style('opacity', 1);
-
-
-        }else{
             
-            settings.piechart.p1.arcs
-            .attr('id', function(d){
+            setTimeout(function(){
+                //unload axis and base line and bars
 
-                return d.data.vsum;
+                d3.selectAll('.heatboxes rect').remove();
 
-            });
+                //create new barchart
+                createHeatMap(data);
 
-            d3.select('#piechart1-title')
-            .text('Food Type by: Value')
-            .transition()
-            .duration(500)
-            .style('opacity', 1);
-            
+                d3.select('#heatmap-title').text(title);
 
 
-        }
-    }   
+            }, 1000); 
+    
+    });
+
+}
+
 
 
 $(document).ready(documentReady);
@@ -934,16 +899,60 @@ $(document).ready(documentReady);
 //data load selectors/
 $('#piechart1-title').on('click', function(){
     var title = d3.select('#piechart1-title').text();
-    console.log(title, typeof(title));
-    if (title == 'Food Type by: Value'){
 
-        updatePie('/piechangefreq', ' x');
+    if (title == settings.piechart.p1.title){
+
+        updatePie('/piechangefreq', ' x', 'Frequency');
 
     }else{
-        updatePie('/piechangeval', ' PLN');
+        updatePie('/piechangeval', ' PLN', 'Value');
         
     }
 });
+
+$('#barchart-title').on('click', function(){
+
+    
+    var title = d3.select('#barchart-title').text();
+
+
+    if (title == settings.barchart.title){
+
+        updateBar('/barchangeinc', 'Daily Spending vs Baseline Incremental');
+
+    }else{
+
+        updateBar('/barchangedisc', settings.barchart.title);
+        
+    }
+
+});
+
+$('#heatmap-title').on('click', function(){
+
+    
+    var title = d3.select('#heatmap-title').text();
+
+
+    if (title == settings.heatmap.title){
+
+        updateHeatMap('/heatchangeavg', 'Average Spending Distribution: Weekdays');
+
+    }else{
+
+        updateHeatMap('/heatchangetot', settings.heatmap.title);
+        
+    }
+
+});
+
+
+
+
+
+
+
+
 
 
 //header

@@ -49,14 +49,11 @@ def test():
 
     
     query_heatbox = db.session.query(func.to_char(Fact.lunch_date, 'Day').distinct().label('Weekday'), 
-     func.sum(Fact.actual).label('sum'), 
-     func.avg(Fact.actual).label('avg')).group_by('Weekday')
+     func.sum(Fact.actual).label('sum')).group_by('Weekday')
 
     base_fct = aliased(Fact)
     actual_fct = aliased(Fact)
-
-    # query_line = get_incremental_sum(db.session.query(Fact))
-
+  
     query_line = db.session.query(Fact.lunch_date, db.session.query(func.sum(base_fct.baseline)).filter(base_fct.lunch_date <= Fact.lunch_date).label('inc_base'), 
      db.session.query(func.sum(actual_fct.actual)).filter(actual_fct.lunch_date <= Fact.lunch_date).label('inc_actual'))
   
@@ -64,7 +61,7 @@ def test():
     json_resp = [[], [], [], []]
 
     for item in query_bar:
-        temp_dict = dict(lunch_date=item.lunch_date, food_type=item.food_type, baseline=item.baseline, 
+        temp_dict = dict(lunch_date=str(item.lunch_date), food_type=item.food_type, baseline=item.baseline, 
         actual=item.actual, breakfast=item.breakfast)
         json_resp[0].append(temp_dict)
 
@@ -78,7 +75,7 @@ def test():
         json_resp[2].append(temp_dict)
     
     for item in query_heatbox:
-        temp_dict = dict(weekday=item.Weekday.strip(), vsum=item.sum, vavg=item.avg)
+        temp_dict = dict(weekday=item.Weekday.strip(), vsum=item.sum)
         json_resp[3].append(temp_dict)       
 
 
@@ -91,7 +88,7 @@ def pie_change_freq():
 
     json_resp = []
     for item in query_pie1:
-        temp_dict = dict(food_type=item.food_type, freq=item.freq)
+        temp_dict = dict(food_type=item.food_type, vsum=item.freq)
         json_resp.append(temp_dict)
 
     return jsonify(json_resp)
@@ -106,20 +103,73 @@ def pie_change_val():
     for item in query_pie1:
         temp_dict = dict(food_type=item.food_type, vsum=item.sum)
         json_resp.append(temp_dict)
-        
+
     return jsonify(json_resp)
 
-@app.route('/test1')
-def test_query():
-    
+@app.route('/barchangeinc')
+def bar_change_inc():
+
     base_fct = aliased(Fact)
     actual_fct = aliased(Fact)
-    
-    query_line = db.session.query(Fact.lunch_date, db.session.query(func.sum(base_fct.baseline)).filter(base_fct.lunch_date <= Fact.lunch_date).label('inc_base'), 
-    db.session.query(func.sum(actual_fct.actual)).filter(actual_fct.lunch_date <= Fact.lunch_date).label('inc_actual'))
 
-    for item in query_line:
-        print(item.lunch_date, item.inc_base, item.inc_actual, item.inc_base - item.inc_actual)
+    # query_line = get_incremental_sum(db.session.query(Fact))
+
+    query_bar = db.session.query(Fact.lunch_date, Fact.food_type, db.session.query(func.sum(base_fct.baseline)).filter(base_fct.lunch_date <= Fact.lunch_date).label('inc_base'), 
+     db.session.query(func.sum(actual_fct.actual)).filter(actual_fct.lunch_date <= Fact.lunch_date).label('inc_actual'))
+     
+    json_resp = []
+
+    for item in query_bar:
+        temp_dict = dict(lunch_date=str(item.lunch_date), food_type=item.food_type, baseline=item.inc_base, 
+        actual=item.inc_actual)
+        json_resp.append(temp_dict)
+
+
+
+    return jsonify(json_resp)
+
+@app.route('/barchangedisc')
+def bar_change_disc():
+
+    query_bar = db.session.query(func.cast(Fact.lunch_date, String).label('lunch_date'), Fact.food_type, Fact.baseline, 
+    Fact.actual, Fact.breakfast)
+
+    json_resp = []
+
+    for item in query_bar:
+        temp_dict = dict(lunch_date=str(item.lunch_date), food_type=item.food_type, baseline=item.baseline, 
+        actual=item.actual, breakfast=item.breakfast)
+        json_resp.append(temp_dict)
+
+    return jsonify(json_resp)
+
+@app.route('/heatchangeavg')
+def heat_change_avg():
+    query_heatbox = db.session.query(func.to_char(Fact.lunch_date, 'Day').distinct().label('Weekday'), 
+     func.avg(Fact.actual).label('avg')).group_by('Weekday')
+
+    json_resp = []
+
+    for item in query_heatbox:
+        temp_dict = dict(weekday=item.Weekday.strip(), vsum=item.avg)
+        json_resp.append(temp_dict)
+
+    return jsonify(json_resp)
+
+
+@app.route('/heatchangetot')
+def heat_change_tot():
+
+    query_heatbox = db.session.query(func.to_char(Fact.lunch_date, 'Day').distinct().label('Weekday'), 
+     func.sum(Fact.actual).label('sum')).group_by('Weekday')
+
+    json_resp = []
+
+    for item in query_heatbox:
+        temp_dict = dict(weekday=item.Weekday.strip(), vsum=item.sum)
+        json_resp.append(temp_dict)
+
+    return jsonify(json_resp)
 
 
 
