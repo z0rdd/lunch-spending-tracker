@@ -25,7 +25,7 @@ settings = {
     line: d3.line(),
     xAxis: d3.axisBottom(),
     yAxis: d3.axisLeft(),
-    title: 'Daily Spending vs Baseline',
+    title: 'Daily Spending vs Baseline: Discrete',
     bars: null
 },
 
@@ -557,15 +557,6 @@ function createHeatMap(data){
         .attr('dx', function(d){
             return settings.heatmap.x_scale(d.weekday) + settings.heatmap.padding.left + (settings.heatmap.x_scale.bandwidth() / 2);
         });
-//titles
-    // svg4.append('text')
-    //     .attr('dx', settings.heatmap.chart_width / 2)
-    //     .attr('dy', settings.heatmap.padding.top/ 2)
-    //     .attr('fill', '#6b8193')
-    //     .attr('text-anchor', 'middle')
-    //     .style('fill-opacity', '1')
-    //     .style('font', 'bold 17px sans-serif')
-    //     .text('Spending Distribution: Weekdays');
 
 }
 
@@ -918,7 +909,7 @@ $('#barchart-title').on('click', function(){
 
     if (title == settings.barchart.title){
 
-        updateBar('/barchangeinc', 'Daily Spending vs Baseline Incremental');
+        updateBar('/barchangeinc', 'Daily Spending vs Baseline: Incremental');
 
     }else{
 
