@@ -1,16 +1,40 @@
 
+var div = d3.select("body").append("div")
+.attr("class", "tooltip")
+.style("opacity", 0);
+
 function createChartTitle(chart,dx, dy, chart_svg){
 
     chart_svg.append('text')
         .attr('id', chart.id+'-title')
+        .attr('class', 'chart-title')
         .attr('dx', dx / 2)
         .attr('dy', dy/ 2)
         .attr('fill', '#6b8193')
         .attr('text-anchor', 'middle')
         .style('fill-opacity', '1')
         .style('font', 'bold 17px sans-serif')
-        .text(chart.title);
+        .style('cursor', 'pointer')
+        .text(chart.title)
+        .on('mouseover', function(d){
+            var currentElement = d3.select(this);
+            currentElement.transition()
+            .duration(100)
+            .style('opacity', '0.6');
+
+        })
+        .on('mouseout', function(d){
+            var currentElement = d3.select(this);
+            currentElement.transition()
+            .duration(100)
+            .style('opacity', '1');
+
+        });
+
+
 }
+
+
 
 //chart settings
 settings = {
@@ -106,6 +130,7 @@ var svg = d3.select( '#'+settings.barchart.id )
     // Create Title
 createChartTitle(settings.barchart,settings.barchart.chart_width, settings.barchart.padding.top, svg);
 
+
 //piechart#1
 var svg2 = d3.select('#'+settings.piechart.id)
     .append('svg')
@@ -143,7 +168,8 @@ var svg5 = d3.select('#'+settings.line.id)
     // Create Title
 createChartTitle(settings.line, settings.line.chart_width, settings.line.padding.top, svg5);
 
-var parseDate = d3.timeParse('%Y-%d-%m');
+
+var parseDate = d3.timeParse('%Y-%m-%d');
 
 
 
@@ -159,13 +185,14 @@ function createBarchart(data, isLine){
     
 
     data.forEach(function(d){
-        
-        d.lunch_date = parseDate(d.lunch_date);
+    
+        d.lunch_d = parseDate(d.lunch_d);
       });
+      console.log(data);
 
     //scales
     settings.barchart.x_scale
-        .domain( data.map(function(d){ return d.lunch_date; }) )
+        .domain( data.map(function(d){ return d.lunch_d; }) )
         .rangeRound([ 0, settings.barchart.chart_width - settings.barchart.padding.left ])
         .paddingInner( 0.05 );
 
@@ -188,26 +215,7 @@ function createBarchart(data, isLine){
     
    
 
-    //create axes
-    svg.append('g')
-    .attr('class', 'xaxis')
-    .attr('transform', 'translate('+settings.barchart.padding.left+', ' + (settings.barchart.chart_height - settings.barchart.padding.bottom)+')')
-    .call(settings.barchart.xAxis)
-    .selectAll('text')
-        .attr("transform", "rotate(-90)" )
-        .style("text-anchor", "end")
-        .attr('fill', '#6b8193')
-        .style('font', 'bold 11px sans-serif')
-        .attr("dx", "-1%")
-        .attr('dy', '-1%');
 
-    svg.append('g')
-        .attr('class', 'yaxis')
-        .attr('transform', 'translate('+settings.barchart.padding.left+', ' +settings.barchart.padding.top+')')
-        .call(settings.barchart.yAxis)
-        .selectAll('text')
-            .attr('fill', '#6b8193')
-            .style('font', 'bold 11px sans-serif');
 
             //create bars
     settings.barchart.bars = svg.append('g')
@@ -220,7 +228,7 @@ function createBarchart(data, isLine){
         return d.food_type;
     })
     .attr( 'x', function( d ){
-        return settings.barchart.x_scale( d.lunch_date ) + settings.barchart.padding.left;
+        return settings.barchart.x_scale( d.lunch_d ) + settings.barchart.padding.left;
     })
     .attr('y', settings.barchart.chart_height - settings.barchart.padding.bottom)
 
@@ -231,12 +239,21 @@ function createBarchart(data, isLine){
     .attr('stroke', '#226789')
     .on('mouseover', function(d){
 
+
         var currentElement = d3.select(this)
+        console.log(currentElement.attr('x'));
 
         currentElement.transition()
             .duration(400)
             .style('fill-opacity', '0.5')
 
+        //label
+        var x = parseInt(currentElement.attr('x'))+parseInt((settings.barchart.x_scale.bandwidth() / 2));
+        var y = parseInt(currentElement.attr('y')) - 20;
+        console.log(x);
+        console.log(y);
+       
+        
         //interaction with pie1
         var arc = d3.select('path.'+currentElement.attr('class'));
 
@@ -267,6 +284,7 @@ function createBarchart(data, isLine){
         currentElement.transition()
             .duration(400)
             .style('fill-opacity', '1');
+
 
         //interaction with pie1
         var arc = d3.select('path.'+currentElement.attr('class'));
@@ -307,7 +325,7 @@ function createBarchart(data, isLine){
     settings.barchart.line
         .x(function( d ){
 
-            return settings.barchart.x_scale( d.lunch_date ) + (settings.barchart.padding.left + (settings.barchart.x_scale.bandwidth() / 2));
+            return settings.barchart.x_scale( d.lunch_d ) + (settings.barchart.padding.left + (settings.barchart.x_scale.bandwidth() / 2));
         })
         .y(function( d ){
 
@@ -327,6 +345,33 @@ function createBarchart(data, isLine){
         .transition()
         .duration(1000)
         .style('opacity', 1);
+
+        setTimeout(function(){
+
+                    //create axes
+            svg.append('g')
+            .attr('class', 'xaxis')
+            .attr('transform', 'translate('+settings.barchart.padding.left+', ' + (settings.barchart.chart_height - settings.barchart.padding.bottom)+')')
+            .call(settings.barchart.xAxis)
+            .selectAll('text')
+                .attr("transform", "rotate(-90)" )
+                .style("text-anchor", "end")
+                .attr('fill', '#6b8193')
+                .style('font', 'bold 11px sans-serif')
+                .attr("dx", "-1%")
+                .attr('dy', '-1%');
+
+            svg.append('g')
+                .attr('class', 'yaxis')
+                .attr('transform', 'translate('+settings.barchart.padding.left+', ' +settings.barchart.padding.top+')')
+                .call(settings.barchart.yAxis)
+                .selectAll('text')
+                    .attr('fill', '#6b8193')
+                    .style('font', 'bold 11px sans-serif');
+
+        }, 1000);
+
+    
 
 
 }
@@ -385,6 +430,7 @@ function createPieChart(data, unit){
         .style('stroke-width', '5')
         .style('opacity', 0)
         .attr('d', settings.piechart.p1.arc)
+        .style('cursor', 'pointer')
         .on('mouseover', function(d){
 
             var currentElement = d3.select(this);
@@ -561,13 +607,14 @@ function createHeatMap(data){
 }
 
 function createLineChart(data){
+
     data.forEach(function(d){
             
-        d.lunch_date = parseDate(d.lunch_date);
+        d.lunch_d = parseDate(d.lunch_d);
       });
-    console.log(data);
+
     settings.line.x_scale
-    .domain( data.map(function(d){ return d.lunch_date; }) )
+    .domain( data.map(function(d){ return d.lunch_d; }) )
     .rangeRound([ 0, settings.line.chart_width - settings.line.padding.left - settings.line.padding.right ]);
 
     settings.line.y_scale
@@ -581,7 +628,7 @@ function createLineChart(data){
 
     settings.line.line
         .x(function( d ){
-            return settings.line.x_scale( d.lunch_date ) + (settings.line.padding.left);
+            return settings.line.x_scale( d.lunch_d ) + (settings.line.padding.left);
         })
         .y(function( d ){
             return settings.line.y_scale( d.inc_savings ) + settings.line.padding.top;
@@ -645,7 +692,7 @@ function createLineChart(data){
                 return d.inc_savings;
             })
             .attr('cx', function(d){
-                return settings.line.x_scale(d.lunch_date) + settings.line.padding.left;
+                return settings.line.x_scale(d.lunch_d) + settings.line.padding.left;
             })
             .attr('cy', function(d){
                 return settings.line.y_scale(d.inc_savings) + settings.line.padding.top;
@@ -654,93 +701,94 @@ function createLineChart(data){
             .style('stroke', '#3c97da')
             .style('stroke-width', '2')
             .style('fill', '#0a2234')
-        .on('mouseover', function(d){
+            .style('cursor', 'pointer')
+            .on('mouseover', function(d){
 
-            var currentElement = d3.select(this)
+                var currentElement = d3.select(this)
 
-            currentElement.transition()
-                .duration(400)
-                .style('fill', '#3c97da')
-                .attr('r', '7');
-
-
-
-        })
-        .on('mouseout', function(d){
-
-            var currentElement = d3.select(this);
-                if (currentElement.classed('unclicked-circle') === true) {
-                    currentElement.transition()
-                        .duration(400)
-                        .style('fill', '#0a2234')
-                        .attr('r', '5');
-                }else{
-
-
-                }
-
-
-        })
-        .on('click', function(d){
-            var currentElement = d3.select(this);
-
-
-            if (currentElement.classed('unclicked-circle') === true){
-
-                var allCircles = d3.selectAll('g#outer-circ circle')
-                allCircles.classed('unclicked-circle', true)
-                    .transition()
-                    .duration(450)
-                    .style('fill', '#0a2234')
-                    .attr('r', '5');
-                currentElement.classed('unclicked-circle', false)
-                    .transition()
-                    .duration(450)
+                currentElement.transition()
+                    .duration(400)
                     .style('fill', '#3c97da')
                     .attr('r', '7');
-                d3.select('text#savings-line-label')
-                    .transition()
-                    .duration(200)
-                    .style('opacity', '0')
-                    .transition()
-                    .duration(200)
-                    .style('opacity', '1')
-                    .text(currentElement.attr('id')+' PLN');
-                d3.select('text#savings-line-label-dt')
-                    .transition()
-                    .duration(200)
-                    .style('opacity', '0')
-                    .transition()
-                    .duration(200)
-                    .style('opacity', '1')
-                    .text(formatLabel(d.lunch_date));
 
-            }else{
-                currentElement.classed('unclicked-circle', true)
-                    currentElement
+
+
+            })
+            .on('mouseout', function(d){
+
+                var currentElement = d3.select(this);
+                    if (currentElement.classed('unclicked-circle') === true) {
+                        currentElement.transition()
+                            .duration(400)
+                            .style('fill', '#0a2234')
+                            .attr('r', '5');
+                    }else{
+
+
+                    }
+
+
+            })
+            .on('click', function(d){
+                var currentElement = d3.select(this);
+
+
+                if (currentElement.classed('unclicked-circle') === true){
+
+                    var allCircles = d3.selectAll('g#outer-circ circle')
+                    allCircles.classed('unclicked-circle', true)
                         .transition()
                         .duration(450)
                         .style('fill', '#0a2234')
-                        .attr('r', 5);
-                d3.select('text#savings-line-label')
-                    .transition()
-                    .duration(200)
-                    .style('opacity', '1')
-                    .transition()
-                    .duration(200)
-                    .style('opacity', '0')
-                    .text('');
-                d3.select('text#savings-line-label-dt')
-                    .transition()
-                    .duration(200)
-                    .style('opacity', '1')
-                    .transition()
-                    .duration(200)
-                    .style('opacity', '0')
-                    .text('');
+                        .attr('r', '5');
+                    currentElement.classed('unclicked-circle', false)
+                        .transition()
+                        .duration(450)
+                        .style('fill', '#3c97da')
+                        .attr('r', '7');
+                    d3.select('text#savings-line-label')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', '0')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', '1')
+                        .text(currentElement.attr('id')+' PLN');
+                    d3.select('text#savings-line-label-dt')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', '0')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', '1')
+                        .text(formatLabel(d.lunch_d));
 
-            }
-        });
+                }else{
+                    currentElement.classed('unclicked-circle', true)
+                        currentElement
+                            .transition()
+                            .duration(450)
+                            .style('fill', '#0a2234')
+                            .attr('r', 5);
+                    d3.select('text#savings-line-label')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', '1')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', '0')
+                        .text('');
+                    d3.select('text#savings-line-label-dt')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', '1')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', '0')
+                        .text('');
+
+                }
+            });
 
 
     settings.line.properLine.transition('line-loads')
@@ -760,6 +808,11 @@ function documentReady(){
         dataType: 'json'
     })
     .done(function(data){
+        data[0].forEach(function(d){
+            console.log(typeof(d.lunch_d), d.lunch_d, parseDate(d.lunch_d));
+        });
+        
+        console.log(data);
 
         d3.select('body').style('pointer-events', 'none');
         createBarchart(data[0], true);
@@ -779,7 +832,8 @@ function updatePie(api_url, unit, title){
         dataType: 'json'
     })
     .done(function(data){
-        console.log(data);
+        
+        
 
         d3.select('#piechart').style('pointer-events', 'none');
         //unload piechart
@@ -814,7 +868,7 @@ function updateBar(api_url, title=''){
         dataType: 'json'
     })
     .done(function(data){
-        console.log(data);
+        
 
         //unload barchart animation
         settings.barchart.bars.transition('barchart-unloads')
@@ -828,9 +882,9 @@ function updateBar(api_url, title=''){
             
             setTimeout(function(){
                 //unload axis and base line and bars
-                d3.select('#barchart svg .xaxis').remove()
-                d3.select('#barchart svg .yaxis').remove()
-                d3.select('#barchart svg .line').remove()
+                //d3.select('#barchart svg .xaxis').remove()
+                d3.select('#barchart svg .yaxis').remove();
+                d3.select('#barchart svg .line').remove();
                 d3.selectAll('.bars rect').remove();
 
                 //create new barchart

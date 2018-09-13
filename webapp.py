@@ -61,8 +61,9 @@ def test():
     json_resp = [[], [], [], []]
 
     for item in query_bar:
-        temp_dict = dict(lunch_date=str(item.lunch_date), food_type=item.food_type, baseline=item.baseline, 
+        temp_dict = dict(lunch_d=str(item.lunch_date), food_type=item.food_type, baseline=item.baseline, 
         actual=item.actual, breakfast=item.breakfast)
+        print(temp_dict)
         json_resp[0].append(temp_dict)
 
     for item in query_pie1:
@@ -70,8 +71,8 @@ def test():
         json_resp[1].append(temp_dict)
 
     for item in query_line:
-        temp_dict = dict(lunch_date=str(item.lunch_date), inc_base=item.inc_base, inc_actual=item.inc_actual, inc_savings=item.inc_base - item.inc_actual)
-        print(temp_dict)
+        temp_dict = dict(lunch_d=str(item.lunch_date), inc_base=item.inc_base, inc_actual=item.inc_actual, inc_savings=item.inc_base - item.inc_actual)
+
         json_resp[2].append(temp_dict)
     
     for item in query_heatbox:
@@ -120,7 +121,7 @@ def bar_change_inc():
     json_resp = []
 
     for item in query_bar:
-        temp_dict = dict(lunch_date=str(item.lunch_date), food_type=item.food_type, baseline=item.inc_base, 
+        temp_dict = dict(lunch_d=str(item.lunch_date), food_type=item.food_type, baseline=item.inc_base, 
         actual=item.inc_actual)
         json_resp.append(temp_dict)
 
@@ -137,7 +138,7 @@ def bar_change_disc():
     json_resp = []
 
     for item in query_bar:
-        temp_dict = dict(lunch_date=str(item.lunch_date), food_type=item.food_type, baseline=item.baseline, 
+        temp_dict = dict(lunch_d=str(item.lunch_date), food_type=item.food_type, baseline=item.baseline, 
         actual=item.actual, breakfast=item.breakfast)
         json_resp.append(temp_dict)
 
