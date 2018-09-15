@@ -75,15 +75,19 @@ piechart: {
 
         },
     p2: {
-        colors: d3.scaleOrdinal().range(d3.schemeDark2),
+        colors: d3.scaleOrdinal().range(['#3c97da','#113856']),
 
         pie_width: 300,
         pie_height: 400,
-        get outer_radius(){return Math.floor(this.pie_width/ 2); },
+        get outer_radius(){return Math.floor(this.pie_width/ 2.4); },
         get inner_radius(){ return Math.floor(this.outer_radius / 1.3); },
+        pie: null,
+        arc: null,
+        properPie: null,
+        arcs: null,
+        label2: null,
         
-        
-        title: 'TBD'
+        title: '% Below Baseline'
 
         }
 
@@ -143,7 +147,7 @@ var svg2 = d3.select('#'+settings.piechart.id)
 createChartTitle(settings.piechart.p1, settings.piechart.p1.pie_width, settings.piechart.p1.pie_height, svg2);
 
 //piechart#2
-var svg3 = d3.select('#'+settings.piechart.id)
+var svg3 = d3.select('#piechart2')
     .append('svg')
     .attr('width', settings.piechart.p2.pie_width)
     .attr('height', settings.piechart.p2.pie_height);
@@ -190,7 +194,7 @@ function createBarchart(data, isLine){
     
         d.lunch_d = parseDate(d.lunch_d);
       });
-      console.log(data);
+
 
     //scales
     settings.barchart.x_scale
@@ -252,7 +256,7 @@ function createBarchart(data, isLine){
 
 
             var currentElement = d3.select(this)
-            console.log(currentElement.attr('x'));
+
 
             currentElement.transition()
                 .duration(400)
@@ -261,8 +265,7 @@ function createBarchart(data, isLine){
             //label
             var x = parseInt(currentElement.attr('x'))+parseInt((settings.barchart.x_scale.bandwidth() / 2));
             var y = parseInt(currentElement.attr('y')) - 20;
-            console.log(x);
-            console.log(y);
+
         
             
             //interaction with pie1
@@ -392,7 +395,7 @@ function createBarchart(data, isLine){
 
         setTimeout(function(){
 
-                    //create axes
+            //create axes
             svg.append('g')
             .attr('class', 'xaxis')
             .attr('transform', 'translate('+settings.barchart.padding.left+', ' + (settings.barchart.chart_height - settings.barchart.padding.bottom)+')')
@@ -484,16 +487,20 @@ function createPieChart(data, unit){
         .style('cursor', 'pointer')
         .each(function() { this._current = {startAngle: 0, endAngle: 0}; });
     } else {
-        
-        settings.piechart.p1.properPie.data(settings.piechart.p1.pie(data));
+
+        settings.piechart.p1.properPie.data(settings.piechart.p1.pie(data))
+        .attr('id', function(d){
+
+            return d.data.vsum;
+            
+        });
     }
 
     settings.piechart.p1.properPie
         .on('mouseover', function(d){
 
             var currentElement = d3.select(this);
-            console.log(currentElement.attr('id'));
-            console.log(this);
+
             currentElement.transition()
                 .duration(400)
                 .style('fill-opacity', '0.5')
@@ -516,7 +523,9 @@ function createPieChart(data, unit){
                 .duration(200)
                 .style('opacity', '0.6')
                 .text(currentElement.attr('id')+unit);
+            //piechart2 interaction
 
+            updateSimplePie(currentElement.attr('class'));
             // barchart interaction
 
             var bars = d3.selectAll('rect.'+currentElement.attr('class'));
@@ -554,30 +563,130 @@ function createPieChart(data, unit){
                 .style('opacity', '0')
                 .text('');
 
+            //pie2 interaction
+            revertSimplePie();
+
             // barchart interaction
 
             var bars = d3.selectAll('rect.'+currentElement.attr('class'));
-            console.log(bars);
+
             bars
                 .transition()
                 .duration(400)
                 .style('opacity', 1);
+
+
         });
 
         settings.piechart.p1.properPie.transition('piechart-loads')
             .duration(1000)
             .attrTween('d', function(d){
                 var interpolate = d3.interpolate(this._current, d);
-                console.log(this._current, d);
+
                 this._current = interpolate(0);
                 return function(t) {
 
                   return settings.piechart.p1.arc(interpolate(t));
                 };
             });
-        // settings.piechart.p1.properPie.transition('piechart-loads')
-        // .duration(1000)
-        // .style('opacity', 1);
+
+
+}
+
+function createSimplePie(data){
+
+    settings.piechart.p2.colors.domain(data, function (d){ return d.baseline; });
+    settings.piechart.p2.pie = d3.pie().value(function(d){ return d.val; });
+    settings.piechart.p2.arc = d3.arc().innerRadius(settings.piechart.p2.inner_radius).outerRadius(settings.piechart.p2.outer_radius);
+    console.log(data);
+    //create lables
+    
+    if ( settings.piechart.p2.label2 == null){
+        settings.piechart.p2.label2 = svg3.append('text')
+            .attr('class', 'pielabel_1')
+            .attr('dx', settings.piechart.p2.pie_width / 2)
+            .attr('dy', Math.floor(settings.piechart.p2.pie_height / 1.6))
+            .style('font', 'bold 20px sans-serif')
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#3c97da')
+            .text(function(){
+                return Math.floor((data[1].val / (data[0].val + data[1].val)*100))  + '%'
+            });
+    }else{
+        settings.piechart.p2.label2.text(function(){
+
+            return Math.floor((data[1].val / (data[0].val + data[1].val)*100))  + '%'
+        })
+
+    }
+
+    svg3.append('text')
+        .attr('class', 'pielabel_2')
+        .attr('dx', settings.piechart.p2.pie_width / 2)
+        .attr('dy', Math.floor(settings.piechart.p2.pie_height / 2.5))
+        .style('font', 'bold 20px sans-serif')
+        .attr('text-anchor', 'middle')
+
+    .attr('fill', '#3c97da')
+    .text('');
+
+
+        
+
+    //draw the pie
+
+
+    if (settings.piechart.p2.properPie == null){
+
+        //define arcs         
+        settings.piechart.p2.arcs = svg3.selectAll('g.arc')
+
+            .append('g')
+            .attr('class', 'arc')
+            ;
+
+        settings.piechart.p2.properPie = settings.piechart.p2.arcs
+        .data(settings.piechart.p2.pie(data))
+        .enter()
+        .append('path')
+        .attr('transform', 'translate(' + settings.piechart.p2.pie_width/ 2 + ', ' + settings.piechart.p2.pie_height / 2 + ')')
+        // .attr('id', function(d){
+
+        //     return d.data.vsum;
+            
+        // })
+        // .attr('class', function(d){
+        //     return '';
+        // })
+        .attr('fill', function (d) {
+
+            return settings.piechart.p2.colors(d.data.baseline);
+        })
+        .style('stroke', '#0a2234')
+        .style('stroke-width', '5')
+        .style('opacity', 1)
+        //.attr('d', settings.piechart.p1.arc)
+        .style('cursor', 'pointer')
+        .each(function() { this._current = {startAngle: 0, endAngle: 0}; });
+    } else {
+
+        settings.piechart.p2.properPie.data(settings.piechart.p2.pie(data));
+    }
+
+ 
+
+        settings.piechart.p2.properPie.transition('piechart-loads')
+            .duration(1000)
+            .attrTween('d', function(d){
+                var interpolate = d3.interpolate(this._current, d);
+  
+                this._current = interpolate(0);
+                return function(t) {
+
+                  return settings.piechart.p2.arc(interpolate(t));
+                };
+            });
+
 
 }
 
@@ -879,14 +988,15 @@ function documentReady(){
     })
     .done(function(data){
         data[0].forEach(function(d){
-            console.log(typeof(d.lunch_d), d.lunch_d, parseDate(d.lunch_d));
+ 
         });
         
-        console.log(data);
+
 
         d3.select('body').style('pointer-events', 'none');
         createBarchart(data[0], true);
         createPieChart(data[1], ' PLN');
+        createSimplePie(data[4]);
         createHeatMap(data[3]);
         createLineChart(data[2]);
         d3.select('body').style('pointer-events', 'auto');
@@ -906,6 +1016,7 @@ function updatePie(api_url, unit, title){
 
         d3.select('#piechart').style('pointer-events', 'none');
         createPieChart(data, unit);
+        d3.select('#piechart1-title').text('Food Type by: '+title);
         d3.select('#piechart').style('pointer-events', 'auto');
         // //unload piechart
         // settings.piechart.p1.properPie
@@ -929,6 +1040,26 @@ function updatePie(api_url, unit, title){
         
     });
         
+}
+function updateSimplePie(api_url){
+    $.ajax({
+        type: 'GET',
+        url: '/basepercent/'+api_url,
+        dataType: 'json'
+    })
+    .done(function(data){
+        createSimplePie(data);
+    });
+}
+function revertSimplePie(){
+    $.ajax({
+        type: 'GET',
+        url: '/basepercent',
+        dataType: 'json'
+    })
+    .done(function(data){
+        createSimplePie(data);
+    });
 }
 
 function updateBar(api_url, title=''){
